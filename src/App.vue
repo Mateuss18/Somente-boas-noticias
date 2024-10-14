@@ -1,22 +1,18 @@
-<script setup>
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <HelloWorld msg="Vite + Vue" />
+  <div id="app">
+    <Header />
+    <NewsCard />
+  </div>
 </template>
 
+<script setup>
+import Header from './components/Header.vue';
+import NewsCard from './components/NewsCard.vue';
+</script>
+
 <style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+#app {
+  background-color: #D9D9D9;
+  border: solid 3.5px #000;
 }
 </style>
