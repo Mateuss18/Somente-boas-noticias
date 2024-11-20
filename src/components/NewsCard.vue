@@ -3,17 +3,18 @@
     <ul>
       <li
         v-for="itemNews in dataNews"
-        :key="itemNews.id"
-        >
-        <p>{{ itemNews.data_publicacao }}</p>
-        <img 
-          :src="'https://agenciadenoticias.ibge.gov.br/' + getImagePath(itemNews.imagens)" 
-          alt="Imagem de Introdução" 
-        />
+        :key="itemNews.id">
+        <p>{{ formatTime(itemNews.data_publicacao) }}</p>
+
+        <img
+          :src="
+            'https://agenciadenoticias.ibge.gov.br/' +
+            getImagePath(itemNews.imagens)
+          "
+          alt="Imagem de Introdução" />
         <h2>{{ itemNews.titulo }}</h2>
         <p>{{ itemNews.tipo }}</p>
         <p class="description">{{ itemNews.introducao }}</p>
-
       </li>
     </ul>
   </div>
@@ -24,6 +25,19 @@ import { ref, onMounted } from "vue";
 
 const dataNews = ref([]); // Inicializamos como array vazio
 
+// Requisição para a API
+const fetchNews = async () => {
+  try {
+    const response = await fetch(
+      "http://servicodados.ibge.gov.br/api/v3/noticias/"
+    );
+    const data = await response.json();
+    dataNews.value = data.items.filter(item => item.tipo === "Notícia"); // Atribui o array de notícias
+  } catch (error) {
+    console.error("Erro ao buscar as notícias:", error);
+  }
+};
+
 // Função para extrair o caminho da imagem do campo 'imagens'
 const getImagePath = (imagens) => {
   if (imagens) {
@@ -33,15 +47,18 @@ const getImagePath = (imagens) => {
   return ""; // Retorna vazio caso não haja imagem
 };
 
-// Requisição para a API
-const fetchNews = async () => {
-  try {
-    const response = await fetch("http://servicodados.ibge.gov.br/api/v3/noticias/");
-    const data = await response.json();
-    dataNews.value = data.items; // Atribui o array de notícias
-  } catch (error) {
-    console.error("Erro ao buscar as notícias:", error);
-  }
+const formatTime = (dateTime) => {
+  if (!dateTime) return ""; // Verifica se o valor existe
+
+  // Separa a data e o tempo
+  const [date, time] = dateTime.split(" ");
+  const [hours, minutes] = time.split(":");
+
+  // Converte a hora para remover o zero à esquerda, se necessário
+  const formattedTime = `${parseInt(hours)}h${minutes}`;
+
+  // Retorna a data com a hora formatada
+  return `${date} ${formattedTime}`;
 };
 
 // Faz a requisição ao montar o componente

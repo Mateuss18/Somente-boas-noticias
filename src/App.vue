@@ -2,12 +2,14 @@
   <div id="app">
     <Header />
     <NewsCard />
+    <!-- <TesteAPI /> -->
   </div>
 </template>
 
 <script setup>
 import Header from './components/Header.vue';
 import NewsCard from './components/NewsCard.vue';
+import TesteAPI from './components/TesteAPI.vue'
 </script>
 
 <style scoped>
