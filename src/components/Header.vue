@@ -1,6 +1,6 @@
 <template>
   <header>
-    <a href="/">SBN</a>
+    <a href="/">SBN - Somente Boas Notícias</a>
   </header>
 </template>
 

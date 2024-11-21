@@ -1,173 +1,183 @@
 <template>
-  <div class="container mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-4">Notícias Positivas</h1>
-    
-    <!-- Debug info -->
-    <div v-if="debugInfo.length > 0" class="mb-4 p-4 bg-gray-100 rounded">
-      <h3 class="font-bold mb-2">Debug Info:</h3>
-      <div v-for="(info, index) in debugInfo" :key="index" class="text-sm">
-        {{ info }}
-      </div>
-    </div>
+  <div>
+    <div v-if="positivesNewsArray.length > 0">
+      <article>
+        <div>
+          {{ positivesNewsArray[0] }}
 
-    <!-- Loading state -->
-    <div v-if="loading" class="text-center">
-      <p>Carregando notícias...</p>
-    </div>
+          <img :src="positivesNewsArray[0].urlToImage" alt="">
 
-    <!-- Error state -->
-    <div v-if="error" class="text-red-500">
-      {{ error }}
-    </div>
-
-    <!-- News list -->
-    <div v-if="positiveNews.length > 0" class="grid gap-4">
-      <div v-for="news in positiveNews" :key="news.id" class="border p-4 rounded-lg">
-        <h2 class="text-xl font-semibold">{{ news.titulo }}</h2>
-        <p class="text-gray-600 mt-2">{{ news.introducao }}</p>
-        <div class="mt-2 text-sm text-gray-500">
-          <span>Data: {{ formatDate(news.data_publicacao) }}</span>
-          <span class="ml-2">Score: {{ news.sentimentScore?.toFixed(2) }}</span>
+          <aside>
+            <h2>{{ positivesNewsArray[0].title }}</h2>
+            <p>
+              {{ positivesNewsArray[0].description }}
+            </p>
+          </aside>
         </div>
-      </div>
-    </div>
+      </article>
 
-    <div v-else-if="!loading && !error" class="text-center">
-      <p>Nenhuma notícia positiva encontrada.</p>
+      <ul>
+        <li v-for="(news, index) in positivesNewsArray" :key="index">
+          <img :src="news.urlToImage" alt="Imagem de Introdução" />
+          <span>{{ news.source.name }} • {{ news.publishedAt }}</span>
+          <h2>{{ news.title }}</h2>
+          <!-- <p>{{ news.description }}</p> -->
+        </li>
+      </ul>
+    </div>
+    <div v-else>
+      <p>Carregando ou nenhuma notícia positiva encontrada...</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from "vue";
+import axios from "axios";
+import { translateText } from "../services/translationService"; // Certifique-se de que este arquivo existe e está correto
 
-const positiveNews = ref([]);
-const loading = ref(false);
-const error = ref(null);
-const debugInfo = ref([]);
-
-const API_TOKEN = "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";
-
-const addDebugInfo = (info) => {
-  debugInfo.value.push(`${new Date().toLocaleTimeString()}: ${info}`);
-  console.log(info);
-};
-
-// Lista de palavras positivas em português
-const palavrasPositivas = [
-  'crescimento', 'aumento', 'melhoria', 'desenvolvimento', 'avanço',
-  'conquista', 'sucesso', 'positivo', 'benefício', 'progresso',
-  'oportunidade', 'inovação', 'expansão', 'crescer', 'melhorar',
-  'desenvolver', 'avançar', 'conquistar', 'beneficiar', 'progredir',
-  'recorde', 'superávit', 'alta', 'alcançar', 'superar',
-  'crescente', 'evolução', 'evolui', 'evoluir', 'aprovação',
-  'celebra', 'celebrar', 'comemora', 'comemorar', 'vitória'
-];
-
-// Lista de palavras negativas em português
-const palavrasNegativas = [
-  'queda', 'redução', 'diminuição', 'declínio', 'perda',
-  'deficit', 'crise', 'problema', 'dificuldade', 'negativo',
-  'risco', 'prejuízo', 'baixa', 'menor', 'pior',
-  'reduzir', 'diminuir', 'cair', 'piorar', 'deteriorar',
-  'inflação', 'desemprego', 'recessão', 'dívida', 'déficit'
-];
-
-const analyzeSentiment = (text) => {
-  const textoLowerCase = text.toLowerCase();
-  let scorePositivo = 0;
-  let scoreNegativo = 0;
-
-  // Conta palavras positivas
-  palavrasPositivas.forEach(palavra => {
-    const regex = new RegExp(palavra, 'gi');
-    const matches = textoLowerCase.match(regex);
-    if (matches) {
-      scorePositivo += matches.length;
-    }
-  });
-
-  // Conta palavras negativas
-  palavrasNegativas.forEach(palavra => {
-    const regex = new RegExp(palavra, 'gi');
-    const matches = textoLowerCase.match(regex);
-    if (matches) {
-      scoreNegativo += matches.length;
-    }
-  });
-
-  // Calcula score final
-  const scoreTotal = scorePositivo - scoreNegativo;
-  const isPositive = scoreTotal > 0;
-  const score = Math.abs(scoreTotal) / (scorePositivo + scoreNegativo + 1); // Normaliza o score
-
-  addDebugInfo(`Análise de texto: Palavras positivas: ${scorePositivo}, Palavras negativas: ${scoreNegativo}, Score final: ${scoreTotal}`);
-
-  return {
-    isPositive,
-    score: score
-  };
-};
+const positivesNewsArray = ref([]); // Variável reativa para armazenar as notícias positivas traduzidas
 
 const fetchNews = async () => {
-  loading.value = true;
-  error.value = null;
-  debugInfo.value = [];
-  
   try {
-    addDebugInfo("Iniciando busca de notícias");
-    
-    const response = await fetch(
-      "http://servicodados.ibge.gov.br/api/v3/noticias/?qtd=10"
+    const response = await axios.get(
+      "https://newsapi.org/v2/top-headlines?country=us&pageSize=50&apiKey=2b00f2b6760d42edb2ef5a8696cdc2a0"
     );
-    
-    if (!response.ok) {
-      throw new Error('Erro ao buscar notícias do IBGE');
-    }
+    const dataNews = response.data.articles.filter((item) => item.title !== "[Removed]");
 
-    const data = await response.json();
-    const newsItems = data.items;
+    // console.log(dataNews);
 
-    addDebugInfo(`Encontradas ${newsItems.length} notícias no total`);
+    // Processar as notícias
+    const positiveNews = []; // Array temporário para armazenar notícias positivas antes de traduzir
 
-    const processedNews = [];
+    for (const itemNewsEn of dataNews) {
+      const isPositive = await analyzeSentiment(itemNewsEn.title);
 
-    for (const item of newsItems) {
-      const textoCompleto = `${item.titulo}. ${item.introducao}`;
-      const sentiment = analyzeSentiment(textoCompleto);
-      
-      addDebugInfo(`Análise da notícia "${item.titulo}": ${sentiment.isPositive ? 'Positiva' : 'Negativa'} (${sentiment.score.toFixed(2)})`);
-      
-      if (sentiment.isPositive) {
-        processedNews.push({
-          ...item,
-          sentimentScore: sentiment.score
-        });
+      if (isPositive) {
+        positiveNews.push(itemNewsEn); // Adiciona ao array temporário
       }
     }
 
-    positiveNews.value = processedNews;
-    
-    if (processedNews.length === 0) {
-      error.value = "Não foi possível encontrar notícias positivas no momento.";
-    }
+    // Traduzir os títulos e descrições das notícias positivas
+    const translatedNews = await Promise.all(
+      positiveNews.map(async (article) => {
+        const translatedTitle = await translateText(article.title); 
+        // const translatedDescription = article.description
+        //   ? await translateText(article.description) 
+        //   : "Sem descrição disponível.";
 
-    addDebugInfo(`Processamento finalizado. Encontradas ${processedNews.length} notícias positivas`);
-  } catch (err) {
-    console.error("Erro:", err);
-    error.value = "Ocorreu um erro ao carregar as notícias. Por favor, tente novamente mais tarde.";
-    addDebugInfo(`Erro geral: ${err.message}`);
-  } finally {
-    loading.value = false;
+        return {
+          ...article,
+          title: translatedTitle
+          // description: translatedDescription,
+        };
+      })
+    );
+
+    positivesNewsArray.value = translatedNews; // Atualiza o array reativo com as notícias traduzidas
+  } catch (error) {
+    console.error("Erro ao buscar as notícias:", error);
   }
 };
 
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('pt-BR');
+const analyzeSentiment = async (text) => {
+  try {
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english",
+      {
+        headers: {
+          Authorization: `Bearer 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`,
+        },
+        method: "POST",
+        body: JSON.stringify({ inputs: text }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0])) {
+      const sentimentArray = result[0]; // Acessar o array interno
+
+      const sentiment = sentimentArray.reduce((prev, current) =>
+        prev?.score > current?.score ? prev : current
+      );
+
+      if (sentiment && sentiment.label && typeof sentiment.score === "number") {
+        return sentiment.label === "POSITIVE";
+      }
+    }
+
+    console.error("Resposta inesperada ou formato inválido:", result);
+    return false;
+  } catch (error) {
+    console.error("Erro ao chamar a API do Hugging Face:", error);
+    return false;
+  }
 };
 
-// Carrega as notícias quando o componente é montado
-onMounted(() => {
-  fetchNews();
-});
+// Chamar a função ao carregar a página
+fetchNews();
 </script>
+
+<style scoped>
+article {
+  padding: 70px 90px;
+  border: solid 3.5px #000;
+}
+article div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1440px;
+}
+article img {
+  height: 550px;
+  width: 100%;
+  max-width: 580px;
+}
+article aside {
+  width: 55%;
+}
+article aside h2 {
+  font-size: 32px;
+  margin-bottom: 30px;
+}
+article aside p {
+  font-size: 18px;
+}
+ul {
+  display: flex;
+  flex-wrap: wrap;
+}
+li {
+  list-style-type: none;
+  max-width: 25%;
+  padding: 32px;
+  border: solid 3.5px #000;
+}
+li h2 {
+  font-size: 18px;
+  height: 81px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+li .description {
+  font-size: 14px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  max-height: 72px;
+}
+img {
+  width: 100%;
+  height: 230px;
+  object-position: center;
+  object-fit: cover;
+  margin-top: 10px;
+  border-radius: 8px;
+}
+</style>
